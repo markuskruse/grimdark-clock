@@ -4,10 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-jproperties = "==2.1.1"
+jproperties = "*"
 six = "==1.16.0"
 
 [dev-packages]
 
 [requires]
-python_version = "3.4"

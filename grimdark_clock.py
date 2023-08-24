@@ -196,21 +196,18 @@ def create_player_row(player_names, row, initial_minutes):
 
 
 def create_toolbar():
-    play_icon = tkinter.PhotoImage(file='play-icon.png')
-    play_button = ttk.Button(master=window, text="Play", image = play_icon, command = play_event, style = "big.TButton")
+    play_button = ttk.Button(master=window, text="Play", command = play_event, style = "big.TButton")
     play_button.grid(row = len(player_times) + 1, column = 0, padx=5, pady=5, sticky="news")
 
-    next_icon = tkinter.PhotoImage(file='next-icon.png')
-    next_button = ttk.Button(master=window, text="Next", image = next_icon, command = next_event, style = "big.TButton")
+    next_button = ttk.Button(master=window, text="Next", command = next_event, style = "big.TButton")
     next_button.grid(row = len(player_times) + 1, column = 1, padx=5, pady=5, sticky="news")
 
-    pause_icon = tkinter.PhotoImage(file='pause-icon.png')
-    pause_button = ttk.Button(master=window, text="Pause", image = pause_icon, command = pause_event, style = "big.TButton")
+    pause_button = ttk.Button(master=window, text="Pause", command = pause_event, style = "big.TButton")
     pause_button.grid(row = len(player_times) + 1, column = 2, padx=5, pady=5, columnspan=3, sticky="news")
 
 
 def key_pressed(event):
-    if event.char == " ":
+    if event.char == " " or event.char == "n":
         next_event()
     if event.char == "p":
         pause_event()
