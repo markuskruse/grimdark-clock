@@ -10,6 +10,10 @@ In your terminal type:
     pipenv shell
     pipenv install -r .\requirements.txt
 
+Alternatively, install the required modules in your global Python installation:
+
+    pip3 install jproperties
+
 This should install jproperties and six.
 
 ## Running the clock
