@@ -12,11 +12,11 @@ window_height = 600
 font_size = 50
 
 player_label_values = []
+player_name_labels = []
 time_label_values = []
 player_times = []
 up_down_buttons = []
-players_done = []
-done_buttons = []
+done_values = []
 old_seconds = time.time()
 state = 0 # 0 = paused, 1 = running
 current_row = 0
@@ -32,40 +32,36 @@ PROP_FONT_SIZE = "fontsize"
 
 def play_event():
     global state
-    title_text.set("Playing: " + player_label_values[current_row].get())
+    title_text.set("Playing")
     state = 1
     enable_up_down(False)
 
 
 def pause_event():
     global state
-    title_text.set("Paused: " + player_label_values[current_row].get())
-    for row in range(num_players):
-        players_done[row] = 0
-        done_buttons[row]["state"] = "normal"
+    title_text.set("Paused")
     state = 0
     enable_up_down(True)
 
 
-def done_event(row):
-    players_done[row] = 1
-    done_buttons[row]["state"] = "disabled"
+def is_done(row):
+    return done_values[row].get() == 1
 
-    if row == current_row:
+
+def done_event(row):
+    if is_done(row) and row == current_row:
         next_event()
 
 
 def next_event():
     original_row = current_row
     next_row()
-    while players_done[current_row] == 1 and current_row != original_row:
+    while is_done(current_row) and current_row != original_row:
         next_row()
-    if current_row == original_row and players_done[current_row] == 1:
+    if current_row == original_row and is_done(current_row):
         pause_event()
-    if state == 0:
-        title_text.set("Paused: " + player_label_values[current_row].get())
-    else:
-        title_text.set("Playing: " + player_label_values[current_row].get())
+    player_name_labels[original_row].configure(style="label.TLabel")
+    player_name_labels[current_row].configure(style="focus.TLabel")
 
 
 def next_row():
@@ -100,12 +96,22 @@ def enable_up_down(enable):
 
 
 def format_time(time_left):
-    minutes = math.floor(time_left / 60)
-    time_left = time_left - minutes * 60
-    seconds = math.floor(time_left)
-    minutes_text = str(minutes).zfill(2)
-    seconds_text = str(seconds).zfill(2)
-    return f'{minutes_text}:{seconds_text}'
+    if time_left >= 0:
+        minutes = math.floor(time_left / 60)
+        time_left = time_left - minutes * 60
+        seconds = math.floor(time_left)
+        minutes_text = str(minutes).zfill(2)
+        seconds_text = str(seconds).zfill(2)
+        return f'{minutes_text}:{seconds_text}'
+    else:
+        time_left = time_left * -1
+        minutes = math.floor(time_left / 60)
+        time_left = time_left - minutes * 60
+        seconds = math.floor(time_left)
+        minutes_text = str(minutes).zfill(2)
+        seconds_text = str(seconds).zfill(2)
+        return f'-{minutes_text}:{seconds_text}'
+
 
 
 def up_event(row):
@@ -159,7 +165,7 @@ def read_parameters():
         configs.store(f, encoding="utf-8")
 
     initial_minutes = int(input_with_default("How many minutes do each player start with", configs.get(PROP_MINUTES)))
-    if initial_minutes < 5 or initial_minutes > 120:
+    if initial_minutes < 0 or initial_minutes > 120:
         print("Invalid starting time, try something 5 and 120")
         exit(1)
     configs[PROP_MINUTES] = str(initial_minutes)
@@ -173,7 +179,10 @@ def create_player_row(player_names, row, initial_minutes):
     name_value = tkinter.StringVar(value=player_names[row])
     player_label_values.append(name_value)
     name_label = ttk.Label(master=window, textvariable=name_value, style="label.TLabel")
+    if row == 0:
+        name_label.configure(style="focus.TLabel")
     name_label.grid(row = row + 1, column = 0, padx=5, pady=5, sticky="news")
+    player_name_labels.append(name_label)
 
     time_value = tkinter.StringVar(value=str(initial_minutes) + ":00")
     time_label = ttk.Label(master=window, textvariable=time_value, style="label.TLabel")
@@ -190,9 +199,12 @@ def create_player_row(player_names, row, initial_minutes):
         down_button.grid(row = row + 1, column = 3, padx=5, pady=5, sticky="news")
         up_down_buttons.append(down_button)
 
-    done_button = ttk.Button(master=window, text="Done", command = lambda: done_event(row), style="small.TButton")
+    done_value = tkinter.IntVar(value=0)
+    done_button = ttk.Checkbutton(master=window, text="Done", command = lambda: done_event(row),
+                                  variable=done_value,
+                                  style="small.TCheckbutton")
     done_button.grid(row = row + 1, column = 4, padx=5, pady=5, sticky="news")
-    done_buttons.append(done_button)
+    done_values.append(done_value)
 
 
 def create_toolbar():
@@ -219,20 +231,24 @@ def key_pressed(event):
         decrease_font()
 
 
-def increase_font():
-    global font_size
-    font_size += 5
+def set_styles():
     style.configure('big.TButton', font=(None, font_size))
     style.configure('small.TButton', font=(None, math.floor(font_size / 2)))
     style.configure('label.TLabel', font=(None, font_size))
+    style.configure('focus.TLabel', font=(None, font_size), background='green')
+    style.configure('small.TCheckbutton', font=(None, font_size))
+
+
+def increase_font():
+    global font_size
+    font_size += 5
+    set_styles()
 
 
 def decrease_font():
     global font_size
     font_size -= 5
-    style.configure('big.TButton', font=(None, font_size))
-    style.configure('small.TButton', font=(None, math.floor(font_size / 2)))
-    style.configure('label.TLabel', font=(None, font_size))
+    set_styles()
 
 
 def main():
@@ -249,19 +265,15 @@ def main():
     for row in range(0, len(player_names)):
         create_player_row(player_names, row, initial_minutes)
         player_times.append(initial_minutes * 60)
-        players_done.append(0)
 
     create_toolbar()
 
     window.after(100, tick)
 
-    window.columnconfigure(tuple(range(5)), weight=1)
-    window.rowconfigure(tuple(range(num_players + 2)), weight=1)
+    window.columnconfigure("all", weight=1)
+    window.rowconfigure("all", weight=1)
 
-    style.configure('big.TButton', font=(None, font_size))
-    style.configure('small.TButton', font=(None, math.floor(font_size / 2)))
-    style.configure('label.TLabel', font=(None, font_size))
-
+    set_styles()
     window.bind("<Key>", key_pressed)
     window.mainloop()
 
